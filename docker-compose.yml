@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  web:
+    image: enrico21/django-app # Use your Docker Hub image
+    container_name: django_app
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    command:
+      [
+        "sh",
+        "-c",
+        "python manage.py migrate && python manage.py runserver 0.0.0.0:8000",
+      ]
+
+  db:
+    image: postgres:16.3-alpine
+    container_name: postgres_db
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backup.sql:/docker-entrypoint-initdb.d/backup.sql # Load backup on startup
+    environment:
+      POSTGRES_DB: e-commerce-clone
+      POSTGRES_USER: enrico-e-commerce
+      POSTGRES_PASSWORD: 1234
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "enrico-e-commerce"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata:

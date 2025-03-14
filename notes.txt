@@ -1,0 +1,172 @@
+
+
+
+docker-compose down  = if you change anything
+docker-compose up -d  = To restart the docker
+docker ps -a          = List all the docker image running or stopped
+docker -ps   = List all the docker image that are running
+docker logs django_app --tail 50   =  Check Django logs for any warnings or errors:
+docker images = List all the docker image
+
+
+
+
+
+==POSTGRESQL LOCAL MACHINE==
+**NOTE**
+    Docker database setup on local machine.
+    This setup is required when cloning database.
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'e-commerce-clone',
+        'USER': 'your_local_user',
+        'PASSWORD': 'your_local_password',
+        'HOST': 'localhost',  # This allows Docker to connect to your local machine
+        'PORT': '5432',
+    }
+}
+
+
+=DOCKER DATABASE SETUP ON SETTINGS.PY BEFORE RUNNING THE BUILD
+
+1. create .env on root folder 
+
+POSTGRES_DB=e-commerce-clone
+POSTGRES_USER=enrico-e-commerce
+POSTGRES_PASSWORD=1234
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+DJANGO_SECRET_KEY="django-insecure-s3-3hfm2(k\$kh7eixc9q\%f(g*tgo27_n!lm^hpz5155ggr4k&+"
+ALLOWED_HOSTS=localhost,127.0.0.1,mydomain.com
+DEBUG=False
+
+2.  Format you database like this on settings.py
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB', 'e-commerce-clone'),
+        'USER': os.getenv('POSTGRES_USER', 'enrico-e-commerce'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', '1234'),
+        'HOST': os.getenv('POSTGRES_HOST', 'localhost'),
+        'PORT': os.getenv('POSTGRES_PORT', '5432'),
+    }
+}
+
+
+
+
+
+
+
+=SHORTCUT=
+Press q (if you're inside the pager view).
+Press Ctrl + C (if q doesn’t work).
+
+
+
+
+
+
+
+==IF YOU MISTAKEN CREATE A DATABASE ON DOCKER THIS WILL NOT AFFECT YOUR LOCAL
+ MACHINE DATA AND YOU WANT TO DROPIT ON DOCKER===
+
+1. CONNECT TO POSTGRESQL
+
+COMMAND = psql -U USERNAME/USER -d postgres
+
+2. RUN THIS ONE BY ONE OR LINE BY LINE
+
+COMMAND =  SELECT pg_terminate_backend(pg_stat_activity.pid)
+COMMAND = PRESS ENTER
+COMMAND = FROM pg_stat_activity
+COMMAND = PRESS ENTER
+COMMAND = WHERE datname = 'e-commerce-clone';
+COMMAND = PRESS ENTER
+
+3. Now, drop the database using double quotes correctly:
+COMMAND =  DROP DATABASE "e-commerce-clone";
+
+4. Verify that the database was deleted:
+COMMAND = \l
+
+
+docker exec -it postgres_db bash = 
+psql -U enrico-e-commerce -d postgres  = USER CREDENTIALS
+\c e-commerce-clone    =  try connecting to DATABASE:
+\dt         = check the tables inside:
+
+
+
+
+
+
+
+===REBUILD ONLY IF NEEDED ELSE USE DOCKER RESTART===
+
+You only need to rebuild if:
+You changed the Dockerfile or docker-compose.yml
+The database container was deleted and needs to be reinitialized
+You changed environment variables related to the database
+
+docker-compose down
+docker-compose up --build -d
+docker restart <image name>
+
+
+
+
+
+
+
+==EXPORT LOCAL DATABASE TO POSTGREQL==
+
+***NOTE!!!!!***
+Replace your_local_db_user with your PostgreSQL username.
+Replace your_local_db_name with your database name.
+This will create a backup.sql file in your current directory.
+Also switch to localhost on database configuration on settings.py
+
+1. COMMAND =  pg_dump -U your_local_db_user -d your_local_db_name > backup.sql
+2. Move the backup.sql File into Your Project Directory / same directory of  .yml file
+3 Add this on .yml on volumes
+
+    - ./backup.sql:/docker-entrypoint-initdb.d/backup.sql
+
+4. Build the docker image
+    COMMAND = docker-compose up --build -d
+
+5. Then verify 
+
+**Note**
+docker ps -a          = List all the docker image running or stopped
+docker -ps   = List all the docker image that are running
+
+    COMMAND = docker ps 
+
+
+===DOCKER IMAGE AS PUBLIC==
+
+1. Run this on power SHELL
+    COMMAND = docker login
+
+2. Tag you images
+
+COMMAND = 
+docker tag project-skeleton-with-e-commerce-cursor-ai-web enrico21/project-skeleton-web:latest
+docker tag postgres:15 enrico21/postgres:latest
+
+3. Push the image/s on docker hub
+
+
+==TEST PULL THE DOCKER IMAGES==
+
+ docker manifest inspect enrico21/project-skeleton-web:latest
+ docker manifest inspect enrico21/postgres:latest
+
+===MAKE DOCKER MULTIPLE PLATFORM=
+docker buildx create --use
+docker buildx build --platform linux/amd64,linux/arm64 -t enrico21/project-skeleton-web:latest --push .
