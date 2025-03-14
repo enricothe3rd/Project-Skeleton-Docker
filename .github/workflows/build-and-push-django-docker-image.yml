@@ -1,0 +1,32 @@
+name: Build and Push Django Docker Image
+
+on:
+  push:
+    branches:
+      - main         # Trigger the workflow when changes are pushed to the 'main' branch
+  tags:
+    - 'v*'           # Trigger the workflow when a tag is created, matching 'v*' (e.g., v1, v2, etc.)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest     # Run the workflow on the latest Ubuntu runner
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2    # This step checks out your code from the GitHub repository so the workflow can use it.
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2    # Logs into Docker Hub using the Docker Hub credentials stored in GitHub Secrets.
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}     # Use Docker Hub username stored in secrets
+          password: ${{ secrets.DOCKER_PASSWORD }}     # Use Docker Hub password stored in secrets
+
+      - name: Build Docker image
+        run: |
+          TAG=${GITHUB_REF##*/}        # Extract the tag from the GitHub reference (this could be a branch or a tag)
+          docker build -t enrico21/django-main:$TAG .  # Build the Docker image with the tag based on the branch/tag name
+
+      - name: Push Docker image
+        run: |
+          TAG=${GITHUB_REF##*/}        # Get the tag again
+          docker push enrico21/django-main:$TAG    # Push the built Docker image to Docker Hub with the specified tag
